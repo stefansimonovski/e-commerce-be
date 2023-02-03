@@ -1,0 +1,362 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["selectRelationCount"]
+}
+
+enum UserRole {
+  SUPERADMIN
+  ADMIN
+  USER
+}
+
+enum DiscountUnit {
+  PERCENTAGE
+  CURRENCY
+}
+
+enum FilterType {
+  SINGLE_SELECT
+  MULTIPLE_SELECT
+}
+
+model User {
+  id                     Int        @id @default(autoincrement())
+  uid                    String     @unique @default(uuid())
+  email                  String     @unique
+  name                   String
+  password               String
+  avatar                 String     @default("https://wallpapercave.com/uwp/uwp580682.jpeg")
+  isActivated            Boolean    @default(false)
+  role                   UserRole   @default(USER)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  isDeleted              Boolean    @default(false)
+  accountActivationToken String
+  activationExpiryDate   DateTime   @default(now())
+  location                Location?
+  contactInfo             PhoneNumber[]
+  reviews                Review[]
+  qna                    QnA[]
+  cart                   CartItem[]
+  wishlist               Wishlist[]
+  orders                 Order[]
+
+
+  @@map("users")
+}
+
+model Category {
+  id                 Int                @id @default(autoincrement())
+  uid                String             @unique @default(uuid())
+  name               String             @unique
+  slug               String             @unique
+  description        String?
+  imageUrl           String             @default("https://wallpaperset.com/w/full/1/a/6/52649.jpg")
+  totalProducts      Int                @default(0)
+  totalSubCategories Int                @default(0)
+  parentName         String?
+  parentSlug         String?
+  parent             Category?          @relation("CategorySubCategories", fields: [parentId], references: [id])
+  parentId           Int?
+  subCategories      Category[]         @relation("CategorySubCategories")
+  products           Product[]
+  filters            Filter[]
+  categoryDiscount   CategoryDiscount[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  isDeleted          Boolean            @default(false)
+
+  @@map("categories")
+}
+
+model Images {
+
+  id             Int     @id @default(autoincrement())
+  imageUrl       String
+  productId      Int
+  product        Product @relation(fields: [productId], references: [id])
+  isDefaultImage Boolean @default(false)
+  @@map("images")
+}
+
+model Product {
+  id                    Int               @id @default(autoincrement())
+  uid                   String            @unique @default(uuid())
+  slug                  String            @unique
+  name                  String
+  shortInfo             String
+  description           String
+  price                 Decimal
+  editorDescription     String?
+  category              Category          @relation(fields: [categoryId], references: [id])
+  categoryId            Int
+  categoryName          String
+  subCategoryName       String?
+  categorySlug          String
+  subCategorySlug       String?
+  pricing               ProductPricing[]
+  images                Images[]
+  filters               Filter[]
+  reviews               Review[]
+  qna                   QnA[]
+  productDiscount       ProductDiscount[]
+  cartItem              CartItem[]
+  wishlist              Wishlist[]
+  orders                Order[]
+  totalPeopleInterested Int               @default(0)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  isDeleted             Boolean           @default(false)
+
+  @@map("products")
+  
+}
+
+model ProductPricing {
+  id        Int       @id @default(autoincrement())
+  productId Int
+  product   Product   @relation(fields: [productId], references: [id])
+  basePrice Decimal
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("productPricing")
+}
+
+model ProductDiscount {
+  id              Int          @id @default(autoincrement())
+  productId       Int
+  product         Product      @relation(fields: [productId], references: [id])
+  discountedValue Float
+  discountedUnit  DiscountUnit @default(PERCENTAGE)
+  couponCode      String?
+  validFrom       DateTime
+  validUntil      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("productDiscount")
+}
+
+model CategoryDiscount {
+  id              Int          @id @default(autoincrement())
+  categoryId      Int
+  category        Category     @relation(fields: [categoryId], references: [id])
+  couponCode      String
+  discountedValue Float
+  discountedUnit  DiscountUnit @default(PERCENTAGE)
+  validFrom       DateTime
+  validUntil      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("categoryDiscount")
+}
+
+model Filter {
+  id                  Int            @id @default(autoincrement())
+  name                String
+  filterType          FilterType     @default(MULTIPLE_SELECT)
+  product             Product?       @relation(fields: [productId], references: [id])
+  productId           Int?
+  categoryName        String
+  subCategoryName     String
+  category            Category?      @relation(fields: [categoryId], references: [id])
+  categoryId          Int?
+  value               String?
+  isVisibleToVisitors Boolean        @default(true)
+  filterOptions       FilterOption[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  isDeleted           Boolean        @default(false)
+
+  @@map("filters")
+}
+
+model FilterOption {
+
+  id       Int     @id @default(autoincrement())
+  name     String
+  filter   Filter? @relation(fields: [filterId], references: [id])
+  filterId Int
+  @@map("filterOptions")
+}
+
+model Review {
+
+  id        Int      @id @default(autoincrement())
+  comment   String
+  rating    Int
+  product   Product? @relation(fields: [productId], references: [id])
+  productId Int
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("reviews")
+}
+
+model QnA {
+
+  id         Int      @id @default(autoincrement())
+  qnaText    String
+  product    Product? @relation(fields: [productId], references: [id])
+  productId  Int
+  question   QnA?     @relation("QuestionAnswers", fields: [questionId], references: [id])
+  questionId Int?
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  QnA        QnA[]    @relation("QuestionAnswers")
+  @@map("qna")
+}
+
+model CartItem {
+  id         Int      @id @default(autoincrement())
+  count      Int      @default(0)
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     Int
+  product    Product? @relation(fields: [productId], references: [id])
+  productId  Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("cartItems")
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int
+  product   Product? @relation(fields: [productId], references: [id])
+  productId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wishlist")
+}
+
+model Order {
+  id     Int   @id @default(autoincrement())
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int
+
+  product   Product? @relation(fields: [productId], references: [id])
+  productId Int
+
+  quantity     Int   @default(1)
+  perItemPrice Float
+  totalPrice   Float
+
+  // stripe unique payment Id
+  paymentIntentId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("orders")
+}
+
+model NavigationMenu {
+  id Int @id @default(autoincrement())
+
+  name       String?
+  order      Int
+  parent     NavigationMenu?  @relation("NavigationMenuSubMenus", fields: [parentId], references: [id])
+  parentId   Int?
+  subMenus   NavigationMenu[] @relation("NavigationMenuSubMenus")
+  isMegaMenu Boolean          @default(false)
+  linkName   String?
+  linkPath   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("navigationMenu")
+}
+
+model BrandInfo {
+  id          Int     @id @default(autoincrement())
+  name        String
+  subtitle    String?
+  description String?
+  logo        String
+  seo         SEO?
+  contactNumber PhoneNumber[]
+  location Location?
+  socialMedias  SocialMedia[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("brandInfo")
+}
+
+model SEO {
+  id              Int     @id @default(autoincrement())
+  metaTitle       String?
+  metaDescription String?
+  ogTitle         String?
+  ogDescription   String?
+  ogImage         String?
+
+  brandInfo   BrandInfo? @relation(fields: [brandInfoId], references: [id])
+  brandInfoId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("seo")
+}
+
+
+model PhoneNumber {
+  id Int @id @default(autoincrement())
+  number  String @unique()
+
+   brandInfo   BrandInfo? @relation(fields: [brandInfoId], references: [id])
+  brandInfoId Int?
+  userInfo      User?        @relation(fields: [userInfoId], references: [id])
+  userInfoId    Int?
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  @@map("phoneNumber")
+}
+
+model SocialMedia {
+  id            Int          @id @default(autoincrement())
+  name          String  @unique
+  profileUrl    String
+  socialMediaIconUrl  String
+   brandInfo   BrandInfo? @relation(fields: [brandInfoId], references: [id])
+  brandInfoId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("socialMedia")
+}
+
+model Location {
+  id            Int          @id @default(autoincrement())
+  street        String? 
+  city          String
+  country       String
+  district      String?
+  zone          String?
+  state         String?
+  brandInfo   BrandInfo? @relation(fields: [brandInfoId], references: [id])
+  brandInfoId Int?
+  userInfo      User?        @relation(fields: [userInfoId], references: [id])
+  userInfoId    Int?
+
+  @@map("location")
+}
