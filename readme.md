@@ -17,3 +17,11 @@
 - Flash sale products for a particular time
 - Server Side Rendered, so some basic SEO functionalities included
 - Admin dashboard to control products, categories, filters
+
+## FE APP
+
+https://github.com/stefansimonovski/e-commerce-fe
+
+#### Live Demo
+
+https://e-commerce-fe.onrender.com/
